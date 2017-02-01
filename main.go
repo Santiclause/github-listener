@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"runtime"
 	"strings"
 )
@@ -42,17 +43,18 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 	signature := []byte(strings.TrimPrefix(r.Header.Get("X-Hub-Signature"), "sha1="))
 	mac := hmac.New(sha1.New, config.SignatureKey)
 	body := io.TeeReader(r.Body, mac)
-	decoder := json.NewDecoder(body)
-	var event PullRequestEvent
-	err := decoder.Decode(&event)
-	if err != nil {
-		log.Printf("Error while handling webhook: %s", err)
-		http.Error(w, "JSON decode failed", http.StatusBadRequest)
-		return
-	}
-	// DEBUG
-	test, _ := json.Marshal(event)
-	log.Printf("Request: %s", test)
+	io.Copy(os.Stdout, body)
+	// decoder := json.NewDecoder(body)
+	// var event PullRequestEvent
+	// err := decoder.Decode(&event)
+	// if err != nil {
+	// 	log.Printf("Error while handling webhook: %s", err)
+	// 	http.Error(w, "JSON decode failed", http.StatusBadRequest)
+	// 	return
+	// }
+	// // DEBUG
+	// test, _ := json.Marshal(event)
+	// log.Printf("Request: %s", test)
 	expected := mac.Sum(nil)
 	if !hmac.Equal(signature, expected) {
 		log.Printf("Unauthorized HTTP request: %s", signature)
