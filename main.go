@@ -3,9 +3,8 @@ package main
 import (
 	"crypto/hmac"
 	"crypto/sha1"
-	// "encoding/json"
+	"encoding/json"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -41,24 +40,23 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Request not found", http.StatusNotFound)
 		return
 	}
-	txt, _ := ioutil.ReadAll(r.Body)
-	log.Printf("%s", txt)
-	return
+	// txt, _ := ioutil.ReadAll(r.Body)
+	// log.Printf("%s", txt)
 	signature := []byte(strings.TrimPrefix(r.Header.Get("X-Hub-Signature"), "sha1="))
 	mac := hmac.New(sha1.New, config.SignatureKey)
-	body := io.TeeReader(r.Body, mac)
-	io.Copy(os.Stdout, body)
-	// decoder := json.NewDecoder(body)
-	// var event PullRequestEvent
-	// err := decoder.Decode(&event)
-	// if err != nil {
-	// 	log.Printf("Error while handling webhook: %s", err)
-	// 	http.Error(w, "JSON decode failed", http.StatusBadRequest)
-	// 	return
-	// }
-	// // DEBUG
-	// test, _ := json.Marshal(event)
-	// log.Printf("Request: %s", test)
+	// body := io.TeeReader(r.Body, mac)
+	body := io.TeeReader(io.TeeReader(r.Body, os.Stdout), mac)
+	decoder := json.NewDecoder(body)
+	var event PullRequestEvent
+	err := decoder.Decode(&event)
+	if err != nil {
+		log.Printf("Error while handling webhook: %s", err)
+		http.Error(w, "JSON decode failed", http.StatusBadRequest)
+		return
+	}
+	// DEBUG
+	test, _ := json.Marshal(event)
+	log.Printf("Request: %s", test)
 	expected := mac.Sum(nil)
 	if !hmac.Equal(signature, expected) {
 		log.Printf("Unauthorized HTTP request: %s", signature)
