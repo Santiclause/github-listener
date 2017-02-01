@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	// "encoding/json"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -40,8 +41,8 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Request not found", http.StatusNotFound)
 		return
 	}
-	log.Printf("wtffff")
-	io.Copy(os.Stdout, r.Body)
+	txt, _ := ioutil.ReadAll(r.Body)
+	log.Printf("%s", txt)
 	return
 	signature := []byte(strings.TrimPrefix(r.Header.Get("X-Hub-Signature"), "sha1="))
 	mac := hmac.New(sha1.New, config.SignatureKey)
