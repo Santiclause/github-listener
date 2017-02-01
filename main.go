@@ -3,7 +3,7 @@ package main
 import (
 	"crypto/hmac"
 	"crypto/sha1"
-	"encoding/json"
+	// "encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -40,6 +40,8 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Request not found", http.StatusNotFound)
 		return
 	}
+	io.Copy(os.Stdout, r.Body)
+	return
 	signature := []byte(strings.TrimPrefix(r.Header.Get("X-Hub-Signature"), "sha1="))
 	mac := hmac.New(sha1.New, config.SignatureKey)
 	body := io.TeeReader(r.Body, mac)
