@@ -17,3 +17,6 @@ build:
 
 release:
 	gcloud docker -- push us.gcr.io/sharpspring-us/github-listener:`git rev-parse --short HEAD`
+
+deploy:
+	kubectl --context=global --namespace=jenkins patch deployment github-listener -p '{"spec":{"template":{"spec":{"containers":[{"name":"github-listener", "image": "us.gcr.io/sharpspring-us/github-listener:$(shell git rev-parse --short HEAD)"}]}}}}'

@@ -40,12 +40,8 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	signature := []byte(strings.TrimPrefix(r.Header.Get("X-Hub-Signature"), "sha1="))
-	body, ok := CompareSignature(r.Body, signature, config.SignatureKey)
-	if !ok {
-		log.Printf("Unauthorized HTTP request: %s", signature)
-		http.Error(w, "Unauthorized request", http.StatusForbidden)
-		return
-	}
+	mac := hmac.New(sha1.New, config.SignatureKey)
+	body := io.TeeReader(r.Body, mac)
 	decoder := json.NewDecoder(body)
 	var event PullRequestEvent
 	err := decoder.Decode(&event)
@@ -54,8 +50,16 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "JSON decode failed", http.StatusBadRequest)
 		return
 	}
+	// DEBUG
 	test, _ := json.Marshal(event)
-	log.Printf("OK: %s", test)
+	log.Printf("Request: %s", test)
+	expected := mac.Sum(nil)
+	if !hmac.Equal(signature, expected) {
+		log.Printf("Unauthorized HTTP request: %s", signature)
+		http.Error(w, "Unauthorized request", http.StatusForbidden)
+		return
+	}
+	log.Printf("OK")
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -67,11 +71,4 @@ func HandleRecover(w http.ResponseWriter, r *http.Request) {
 		runtime.Stack(stack, false)
 		log.Printf("HTTP error %s\n%s", err, stack)
 	}
-}
-
-func CompareSignature(payload io.Reader, signature, key []byte) (io.Reader, bool) {
-	mac := hmac.New(sha1.New, key)
-	tr := io.TeeReader(payload, mac)
-	expected := mac.Sum(nil)
-	return tr, hmac.Equal(signature, expected)
 }
