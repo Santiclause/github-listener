@@ -40,6 +40,7 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Request not found", http.StatusNotFound)
 		return
 	}
+	log.Printf("wtffff")
 	io.Copy(os.Stdout, r.Body)
 	return
 	signature := []byte(strings.TrimPrefix(r.Header.Get("X-Hub-Signature"), "sha1="))
